@@ -12,14 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * @Route("/user")
- */
+#[Route('/user')]
 class UserController extends AbstractController
 {
-    /**
-     * @Route("/", name="app_user_index", methods={"GET"})
-     */
+    #[Route('/', name: 'app_user_index', methods: ['GET'])]
     public function index(UserRepository $userRepository): Response
     {
         return $this->render('user/index.html.twig', [
@@ -27,9 +23,7 @@ class UserController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/new", name="app_user_new", methods={"GET", "POST"})
-     */
+    #[Route('/new', name:'app_user_new', methods: ['GET', 'POST'])]
     public function new(Request $request, UserRepository $userRepository): Response
     {
         $user = new User();
@@ -39,7 +33,7 @@ class UserController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $userRepository->add($user, true);
 
-            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_home', [], Response::HTTP_SEE_OTHER);
         }
 
         return $this->renderForm('user/new.html.twig', [
@@ -48,9 +42,7 @@ class UserController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/{id}", name="app_user_show", methods={"GET"})
-     */
+    #[Route('/{id}', name: 'app_user_show', methods: ['GET'])]
     public function show(User $user): Response
     {
         return $this->render('user/show.html.twig', [
@@ -58,9 +50,8 @@ class UserController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/edit/{id<\d+>}", name="app_user_edit", methods={"GET", "POST"})
-     */
+
+    #[Route('/edit/{id<\d+>}', name: 'app_user_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request,
                          User $user,
                          EntityManagerInterface $em,
@@ -98,15 +89,17 @@ class UserController extends AbstractController
         }
     }
 
-    /**
-     * @Route("/{id}", name="app_user_delete", methods={"POST"})
-     */
-    public function delete(Request $request, User $user, UserRepository $userRepository): Response
+    #[Route('/{id}', name: 'app_user_delete', methods: ['POST'])]
+    public function delete(User $user,
+                           EntityManagerInterface $em ): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$user->getId(), $request->request->get('_token'))) {
-            $userRepository->remove($user, true);
-        }
+        $this->container->get('security.token_storage')->setToken(null);
 
-        return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        $em->remove($user);
+        $em->flush();
+
+// Ceci ne fonctionne pas avec la création d'une nouvelle session !
+        $this->addFlash('success', 'Votre compte utilisateur a bien été supprimé !');
+        return $this->redirectToRoute('app_home', [], Response::HTTP_SEE_OTHER);
     }
 }
